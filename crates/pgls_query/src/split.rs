@@ -45,6 +45,46 @@ pub fn split_with_parser(query: &str) -> Result<Vec<&str>> {
     split_result
 }
 
+/// A statement's position within the original source, as byte offsets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StatementRange {
+    /// Byte offset of the first byte of the statement.
+    pub start: usize,
+    /// Byte offset one past the last byte of the statement.
+    pub end: usize,
+}
+
+/// Split a well-formed query into separate statements, returning each
+/// statement's byte range within the original source.
+///
+/// Unlike [`split_with_parser`], which returns string slices, this returns
+/// offsets so callers can map the ranges into their own text model.
+///
+/// Note that, like [`split_with_parser`], this fails if *any* statement in
+/// the source is malformed.
+pub fn split_with_parser_ranges(query: &str) -> Result<Vec<StatementRange>> {
+    let input = CString::new(query)?;
+    let result = unsafe { pg_query_split_with_parser(input.as_ptr()) };
+    let ranges = if !result.error.is_null() {
+        let message = unsafe { CStr::from_ptr((*result.error).message) }
+            .to_string_lossy()
+            .to_string();
+        Err(Error::Split(message))
+    } else {
+        let n_stmts = result.n_stmts as usize;
+        let mut ranges = Vec::with_capacity(n_stmts);
+        for offset in 0..n_stmts {
+            let split_stmt = unsafe { *result.stmts.add(offset).read() };
+            let start = split_stmt.stmt_location as usize;
+            let end = start + split_stmt.stmt_len as usize;
+            ranges.push(StatementRange { start, end });
+        }
+        Ok(ranges)
+    };
+    unsafe { pg_query_free_split_result(result) };
+    ranges
+}
+
 /// Split a potentially-malformed query into separate statements. Note that
 /// invalid tokens will be skipped
 /// ```rust

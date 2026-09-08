@@ -5,8 +5,9 @@ pub mod diagnostics;
 mod splitter;
 
 use diagnostics::SplitDiagnostic;
-use pgls_lexer::Lexer;
-use pgls_text_size::TextRange;
+use pgls_lexer::{Lexed, Lexer, SyntaxKind};
+use pgls_query::StatementRange;
+use pgls_text_size::{TextRange, TextSize};
 use splitter::{Splitter, source};
 
 pub struct SplitResult {
@@ -14,7 +15,108 @@ pub struct SplitResult {
     pub errors: Vec<SplitDiagnostic>,
 }
 
+/// Strategy used to determine statement boundaries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SplitStrategy {
+    /// Split on `;` only, using the PostgreSQL parser.
+    ///
+    /// A blank line is *not* a statement boundary. If the source cannot be
+    /// parsed (e.g. an incomplete statement while typing), the split falls
+    /// back to [`SplitStrategy::BlankLineHeuristic`] so that the individual
+    /// fragments can still be reported.
+    #[default]
+    ParserFirst,
+    /// Legacy lexer-based splitting: in addition to `;`, a blank line
+    /// (double newline) terminates a statement.
+    BlankLineHeuristic,
+}
+
+/// Options controlling how [`split_with_options`] determines statement boundaries.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SplitOptions {
+    pub strategy: SplitStrategy,
+}
+
 pub fn split(sql: &str) -> SplitResult {
+    split_with_options(sql, SplitOptions::default())
+}
+
+pub fn split_with_options(sql: &str, options: SplitOptions) -> SplitResult {
+    if options.strategy == SplitStrategy::ParserFirst {
+        if let Ok(ranges) = pgls_query::split_with_parser_ranges(sql) {
+            let lexed = Lexer::new(sql).lex();
+            let ranges = normalize_ranges(&lexed, ranges);
+            return SplitResult {
+                ranges,
+                errors: Vec::new(),
+            };
+        }
+    }
+
+    split_lexer(sql)
+}
+
+/// Rewrites the parser-provided ranges to match the historical splitter
+/// semantics: the range starts at the first non-trivia token (no leading
+/// whitespace or comments) and, when present, includes the terminating `;`.
+///
+/// The token stream is walked once, so this is linear in the number of tokens.
+fn normalize_ranges(lexed: &Lexed, ranges: Vec<StatementRange>) -> Vec<TextRange> {
+    let mut result = Vec::with_capacity(ranges.len());
+    let mut idx = 0;
+
+    for range in ranges {
+        // First non-trivia token at or after `range.start`.
+        while idx + 1 < lexed.len()
+            && (is_trivia_token(lexed, idx)
+                || (u32::from(lexed.range(idx).start()) as usize) < range.start)
+        {
+            idx += 1;
+        }
+
+        let start = if idx + 1 < lexed.len() && !is_trivia_token(lexed, idx) {
+            lexed.range(idx).start()
+        } else {
+            TextSize::from(range.start as u32)
+        };
+
+        // First non-trivia token at or after `range.end`.
+        let mut end_idx = idx;
+        while end_idx + 1 < lexed.len()
+            && (is_trivia_token(lexed, end_idx)
+                || (u32::from(lexed.range(end_idx).start()) as usize) < range.end)
+        {
+            end_idx += 1;
+        }
+
+        let end = if end_idx + 1 < lexed.len() && lexed.kind(end_idx) == SyntaxKind::SEMICOLON {
+            lexed.range(end_idx).end()
+        } else {
+            TextSize::from(range.end as u32)
+        };
+
+        result.push(TextRange::new(start, end));
+        idx = end_idx;
+    }
+
+    result
+}
+
+/// Trivia for range normalization purposes: any whitespace or comment, including
+/// line endings (regardless of how many there are).
+fn is_trivia_token(lexed: &Lexed, idx: usize) -> bool {
+    matches!(
+        lexed.kind(idx),
+        SyntaxKind::SPACE
+            | SyntaxKind::TAB
+            | SyntaxKind::VERTICAL_TAB
+            | SyntaxKind::FORM_FEED
+            | SyntaxKind::COMMENT
+            | SyntaxKind::LINE_ENDING
+    )
+}
+
+fn split_lexer(sql: &str) -> SplitResult {
     let lexed = Lexer::new(sql).lex();
 
     let mut splitter = Splitter::new(&lexed);
