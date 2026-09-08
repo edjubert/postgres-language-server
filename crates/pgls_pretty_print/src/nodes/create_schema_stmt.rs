@@ -6,6 +6,7 @@ use crate::{
 };
 
 use super::node_list::emit_space_separated_list;
+use crate::emitter::LineType;
 
 pub(super) fn emit_create_schema_stmt(e: &mut EventEmitter, n: &CreateSchemaStmt) {
     e.group_start(GroupKind::CreateSchemaStmt);
@@ -36,10 +37,18 @@ pub(super) fn emit_create_schema_stmt(e: &mut EventEmitter, n: &CreateSchemaStmt
         super::emit_role_spec(e, authrole);
     }
 
-    // Schema elements (nested CREATE statements)
+    // Schema elements (nested CREATE statements).
+    //
+    // Per the PostgreSQL grammar (`OptSchemaEltList: OptSchemaEltList schema_stmt`),
+    // elements are space-separated and the child statements must not carry their
+    // own terminating `;` — only the outer `CREATE SCHEMA` does.
     if !n.schema_elts.is_empty() {
-        e.space();
+        // Soft line so the renderer can wrap when the schema name and the
+        // first element don't fit on one line.
+        e.line(LineType::SoftOrSpace);
+        e.no_semicolon = true;
         emit_space_separated_list(e, &n.schema_elts, super::emit_node);
+        e.no_semicolon = false;
     }
 
     e.token(TokenKind::SEMICOLON);

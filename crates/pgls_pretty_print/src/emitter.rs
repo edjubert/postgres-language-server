@@ -25,6 +25,12 @@ pub enum LayoutEvent {
 #[derive(Debug, Default)]
 pub struct EventEmitter {
     pub events: Vec<LayoutEvent>,
+    /// When set, [`EventEmitter::token`] drops `SEMICOLON` tokens.
+    ///
+    /// Used when emitting complete statements as sub-elements of another
+    /// statement (e.g. the `schema_elts` of a `CREATE SCHEMA`), where the
+    /// child statement's terminating `;` must not be emitted.
+    pub no_semicolon: bool,
 }
 
 impl EventEmitter {
@@ -33,6 +39,9 @@ impl EventEmitter {
     }
 
     pub fn token(&mut self, token: TokenKind) {
+        if self.no_semicolon && token == TokenKind::SEMICOLON {
+            return;
+        }
         self.events.push(LayoutEvent::Token(token));
     }
 
