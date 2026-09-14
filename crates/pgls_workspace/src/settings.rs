@@ -19,7 +19,7 @@ use pgls_configuration::{
     diagnostics::InvalidIgnorePattern,
     files::FilesConfiguration,
     format::{
-        CastStyle, CommaStyle, FormatConfiguration, IndentStyle, KeywordCase,
+        CastStyle, ClauseBodyStyle, CommaStyle, FormatConfiguration, IndentStyle, KeywordCase,
         LogicalOperatorPlacement,
     },
     migrations::{MigrationsConfiguration, PartialMigrationsConfiguration},
@@ -382,6 +382,7 @@ fn to_formatter_settings(
         comma_style: conf.comma_style,
         logical_operator_placement: conf.logical_operator_placement,
         cast_style: conf.cast_style,
+        clause_body_style: conf.clause_body_style,
         skip_fn_bodies: conf.skip_fn_bodies,
         ignored_files: to_matcher(working_directory.clone(), Some(&conf.ignore))?,
         included_files: to_matcher(working_directory.clone(), Some(&conf.include))?,
@@ -592,6 +593,8 @@ pub struct FormatterSettings {
 
     /// How an explicit cast is spelled: cast or operator. Default: cast.
     pub cast_style: CastStyle,
+    /// Where the body of a clause starts: break or compact. Default: break.
+    pub clause_body_style: ClauseBodyStyle,
 
     /// If true, skip formatting of SQL function bodies (keep them verbatim). Default: false.
     pub skip_fn_bodies: bool,
@@ -616,6 +619,7 @@ impl Default for FormatterSettings {
             comma_style: CommaStyle::default(),
             logical_operator_placement: LogicalOperatorPlacement::default(),
             cast_style: CastStyle::default(),
+            clause_body_style: ClauseBodyStyle::default(),
             skip_fn_bodies: false,
             ignored_files: Matcher::empty(),
             included_files: Matcher::empty(),
