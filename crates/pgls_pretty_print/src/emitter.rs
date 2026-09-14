@@ -41,22 +41,29 @@ pub enum LayoutEvent {
 pub struct EventEmitter {
     pub events: Vec<LayoutEvent>,
     config: FormatConfig,
-    /// Comments still waiting to be emitted, by the source location of the node they precede.
+    /// Comments still waiting to be emitted before a node, by source location.
     /// Entries are removed as they are emitted so that a comment cannot be printed twice, and so
     /// that the caller can check the map is empty afterwards.
-    comments: HashMap<i32, Vec<Comment>>,
+    leading_comments: HashMap<i32, Vec<Comment>>,
+    /// Comments still waiting to be emitted after a node, by source location.
+    trailing_comments: HashMap<i32, Vec<Comment>>,
 }
 
 impl EventEmitter {
     pub fn new(config: FormatConfig) -> Self {
-        Self::with_comments(config, HashMap::new())
+        Self::with_comments(config, HashMap::new(), HashMap::new())
     }
 
-    pub fn with_comments(config: FormatConfig, comments: HashMap<i32, Vec<Comment>>) -> Self {
+    pub fn with_comments(
+        config: FormatConfig,
+        leading_comments: HashMap<i32, Vec<Comment>>,
+        trailing_comments: HashMap<i32, Vec<Comment>>,
+    ) -> Self {
         Self {
             events: Vec::new(),
             config,
-            comments,
+            leading_comments,
+            trailing_comments,
         }
     }
 
@@ -83,9 +90,9 @@ impl EventEmitter {
             .push(LayoutEvent::Comment { text, line_comment });
     }
 
-    /// Emits and consumes the comments attached to `location`, if any.
-    pub fn take_comments_at(&mut self, location: i32) {
-        let Some(comments) = self.comments.remove(&location) else {
+    /// Emits and consumes comments that precede `location`, if any.
+    pub fn take_leading_comments_at(&mut self, location: i32) {
+        let Some(comments) = self.leading_comments.remove(&location) else {
             return;
         };
 
@@ -100,8 +107,27 @@ impl EventEmitter {
         }
     }
 
+    /// Emits and consumes comments that follow `location`, if any.
+    pub fn take_trailing_comments_at(&mut self, location: i32) {
+        let Some(comments) = self.trailing_comments.remove(&location) else {
+            return;
+        };
+
+        for comment in comments {
+            let line_comment = comment.line_comment;
+            self.space();
+            self.comment(comment.text, line_comment);
+            if line_comment {
+                self.line(LineType::Hard);
+            } else {
+                self.space();
+            }
+        }
+    }
+
     pub fn pending_comments(&self) -> usize {
-        self.comments.values().map(Vec::len).sum()
+        self.leading_comments.values().map(Vec::len).sum::<usize>()
+            + self.trailing_comments.values().map(Vec::len).sum::<usize>()
     }
 
     pub fn group_start(&mut self, kind: GroupKind) {
