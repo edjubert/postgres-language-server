@@ -70,6 +70,37 @@ impl From<KeywordCase> for pgls_pretty_print::renderer::KeywordCase {
     }
 }
 
+/// Where the body of a clause starts.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Merge, PartialEq, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum ClauseBodyStyle {
+    #[default]
+    Break,
+    Compact,
+}
+
+impl FromStr for ClauseBodyStyle {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "break" => Ok(Self::Break),
+            "compact" => Ok(Self::Compact),
+            _ => Err("Value not supported for ClauseBodyStyle. Use 'break' or 'compact'."),
+        }
+    }
+}
+
+impl From<ClauseBodyStyle> for pgls_pretty_print::ClauseBodyStyle {
+    fn from(style: ClauseBodyStyle) -> Self {
+        match style {
+            ClauseBodyStyle::Break => Self::Break,
+            ClauseBodyStyle::Compact => Self::Compact,
+        }
+    }
+}
+
 /// The configuration for SQL formatting.
 #[derive(Clone, Debug, Deserialize, Eq, Partial, PartialEq, Serialize)]
 #[partial(derive(Bpaf, Clone, Eq, PartialEq, Merge))]
@@ -97,6 +128,10 @@ pub struct FormatConfiguration {
     /// Data type casing (text, varchar, int): "upper" or "lower". Default: "lower".
     #[partial(bpaf(long("type-case")))]
     pub type_case: KeywordCase,
+    /// Where the body of a clause starts: "break" for a new line, "compact" to keep the first
+    /// element on the keyword line. Default: "break".
+    #[partial(bpaf(long("clause-body-style")))]
+    pub clause_body_style: ClauseBodyStyle,
     /// If `true`, skip formatting of SQL function bodies (keep them verbatim). Default: `false`.
     #[partial(bpaf(long("skip-fn-bodies")))]
     pub skip_fn_bodies: bool,
@@ -118,6 +153,7 @@ impl Default for FormatConfiguration {
             keyword_case: KeywordCase::default(),
             constant_case: KeywordCase::default(),
             type_case: KeywordCase::default(),
+            clause_body_style: ClauseBodyStyle::default(),
             skip_fn_bodies: false,
             ignore: Default::default(),
             include: Default::default(),

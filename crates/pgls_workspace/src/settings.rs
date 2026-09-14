@@ -18,7 +18,7 @@ use pgls_configuration::{
     database::PartialDatabaseConfiguration,
     diagnostics::InvalidIgnorePattern,
     files::FilesConfiguration,
-    format::{FormatConfiguration, IndentStyle, KeywordCase},
+    format::{ClauseBodyStyle, FormatConfiguration, IndentStyle, KeywordCase},
     migrations::{MigrationsConfiguration, PartialMigrationsConfiguration},
     pglinter::PglinterConfiguration,
     plpgsql_check::PlPgSqlCheckConfiguration,
@@ -376,6 +376,7 @@ fn to_formatter_settings(
         keyword_case: conf.keyword_case,
         constant_case: conf.constant_case,
         type_case: conf.type_case,
+        clause_body_style: conf.clause_body_style,
         skip_fn_bodies: conf.skip_fn_bodies,
         ignored_files: to_matcher(working_directory.clone(), Some(&conf.ignore))?,
         included_files: to_matcher(working_directory.clone(), Some(&conf.include))?,
@@ -578,6 +579,9 @@ pub struct FormatterSettings {
     /// Data type casing (text, varchar, int): upper or lower. Default: lower.
     pub type_case: KeywordCase,
 
+    /// Where the body of a clause starts: break or compact. Default: break.
+    pub clause_body_style: ClauseBodyStyle,
+
     /// If true, skip formatting of SQL function bodies (keep them verbatim). Default: false.
     pub skip_fn_bodies: bool,
 
@@ -598,6 +602,7 @@ impl Default for FormatterSettings {
             keyword_case: KeywordCase::default(),
             constant_case: KeywordCase::default(),
             type_case: KeywordCase::default(),
+            clause_body_style: ClauseBodyStyle::default(),
             skip_fn_bodies: false,
             ignored_files: Matcher::empty(),
             included_files: Matcher::empty(),
