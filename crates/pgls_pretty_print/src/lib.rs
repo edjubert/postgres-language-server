@@ -10,6 +10,17 @@ pub use crate::renderer::{IndentStyle, KeywordCase, RenderConfig};
 use pgls_query::NodeEnum;
 use thiserror::Error;
 
+/// How a statement is laid out across lines.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum Layout {
+    /// Break only when a line would exceed the line width.
+    #[default]
+    Fit,
+    /// Always break between the clauses of a statement, whatever the width. The line width then
+    /// only governs breaking inside a clause.
+    Expanded,
+}
+
 /// Error type for formatting operations.
 #[derive(Debug, Error)]
 pub enum FormatError {
@@ -97,6 +108,8 @@ pub struct FormatConfig {
     /// Put the terminating semicolon on its own line when the statement spans several lines.
     /// Default: false.
     pub isolate_semicolon: bool,
+    /// How a statement is laid out across lines. Default: Fit.
+    pub layout: Layout,
 }
 
 impl Default for FormatConfig {
@@ -113,6 +126,7 @@ impl Default for FormatConfig {
             cast_style: CastStyle::default(),
             clause_body_style: ClauseBodyStyle::default(),
             isolate_semicolon: false,
+            layout: Layout::default(),
         }
     }
 }
@@ -246,5 +260,6 @@ mod tests {
         let config = FormatConfig::default();
         assert_eq!(config.line_width, 100);
         assert_eq!(config.indent_size, 2);
+        assert_eq!(config.layout, Layout::Fit);
     }
 }

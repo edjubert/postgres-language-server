@@ -19,7 +19,7 @@ use pgls_configuration::{
     diagnostics::InvalidIgnorePattern,
     files::FilesConfiguration,
     format::{
-        CastStyle, ClauseBodyStyle, CommaStyle, FormatConfiguration, IndentStyle, KeywordCase,
+        CastStyle, ClauseBodyStyle, CommaStyle, FormatConfiguration, IndentStyle, KeywordCase, Layout,
         LogicalOperatorPlacement,
     },
     migrations::{MigrationsConfiguration, PartialMigrationsConfiguration},
@@ -384,6 +384,7 @@ fn to_formatter_settings(
         cast_style: conf.cast_style,
         clause_body_style: conf.clause_body_style,
         isolate_semicolon: conf.isolate_semicolon,
+        layout: conf.layout,
         skip_fn_bodies: conf.skip_fn_bodies,
         ignored_files: to_matcher(working_directory.clone(), Some(&conf.ignore))?,
         included_files: to_matcher(working_directory.clone(), Some(&conf.include))?,
@@ -600,6 +601,8 @@ pub struct FormatterSettings {
     /// If true, the terminating semicolon goes on its own line when the statement spans several
     /// lines. Default: false.
     pub isolate_semicolon: bool,
+    /// How a statement is laid out across lines: fit or expanded. Default: fit.
+    pub layout: Layout,
 
     /// If true, skip formatting of SQL function bodies (keep them verbatim). Default: false.
     pub skip_fn_bodies: bool,
@@ -626,6 +629,7 @@ impl Default for FormatterSettings {
             cast_style: CastStyle::default(),
             clause_body_style: ClauseBodyStyle::default(),
             isolate_semicolon: false,
+            layout: Layout::default(),
             skip_fn_bodies: false,
             ignored_files: Matcher::empty(),
             included_files: Matcher::empty(),
