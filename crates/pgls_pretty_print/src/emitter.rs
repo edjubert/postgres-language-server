@@ -1,3 +1,4 @@
+use crate::FormatConfig;
 pub use crate::codegen::group_kind::GroupKind;
 pub use crate::codegen::token_kind::TokenKind;
 
@@ -22,14 +23,28 @@ pub enum LayoutEvent {
     IndentEnd,
 }
 
-#[derive(Debug, Default)]
+/// Collects layout events for the renderer.
+///
+/// The emitter holds the configuration because some options decide which tokens exist at all,
+/// such as where a comma sits in a list, and not merely how a token is rendered.
+#[derive(Debug)]
 pub struct EventEmitter {
     pub events: Vec<LayoutEvent>,
+    config: FormatConfig,
 }
 
 impl EventEmitter {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(config: FormatConfig) -> Self {
+        Self {
+            events: Vec::new(),
+            config,
+        }
+    }
+
+    // Later option PRs inspect this while deciding which layout events to emit.
+    #[allow(dead_code)]
+    pub fn config(&self) -> &FormatConfig {
+        &self.config
     }
 
     pub fn token(&mut self, token: TokenKind) {
