@@ -31,6 +31,16 @@ pub enum FormatError {
     BetaUnsupported { message: String },
 }
 
+/// How an explicit cast is spelled.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum CastStyle {
+    /// `CAST(expr AS type)`.
+    #[default]
+    Cast,
+    /// `expr::type`.
+    Operator,
+}
+
 /// Configuration for the SQL formatter.
 #[derive(Debug, Clone)]
 pub struct FormatConfig {
@@ -46,6 +56,8 @@ pub struct FormatConfig {
     pub constant_case: KeywordCase,
     /// Casing for data types (text, varchar, int). Default: Lower.
     pub type_case: KeywordCase,
+    /// How an explicit cast is spelled. Default: Cast.
+    pub cast_style: CastStyle,
 }
 
 impl Default for FormatConfig {
@@ -57,6 +69,7 @@ impl Default for FormatConfig {
             keyword_case: KeywordCase::default(),
             constant_case: KeywordCase::default(),
             type_case: KeywordCase::default(),
+            cast_style: CastStyle::default(),
         }
     }
 }
