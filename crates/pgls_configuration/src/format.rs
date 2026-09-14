@@ -134,6 +134,37 @@ impl From<LogicalOperatorPlacement> for pgls_pretty_print::LogicalOperatorPlacem
     }
 }
 
+/// How an explicit cast is spelled.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Merge, PartialEq, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum CastStyle {
+    #[default]
+    Cast,
+    Operator,
+}
+
+impl FromStr for CastStyle {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "cast" => Ok(Self::Cast),
+            "operator" => Ok(Self::Operator),
+            _ => Err("Value not supported for CastStyle. Use 'cast' or 'operator'."),
+        }
+    }
+}
+
+impl From<CastStyle> for pgls_pretty_print::CastStyle {
+    fn from(style: CastStyle) -> Self {
+        match style {
+            CastStyle::Cast => Self::Cast,
+            CastStyle::Operator => Self::Operator,
+        }
+    }
+}
+
 /// The configuration for SQL formatting.
 #[derive(Clone, Debug, Deserialize, Eq, Partial, PartialEq, Serialize)]
 #[partial(derive(Bpaf, Clone, Eq, PartialEq, Merge))]
@@ -168,6 +199,10 @@ pub struct FormatConfiguration {
     /// Default: "trailing".
     #[partial(bpaf(long("logical-operator-placement")))]
     pub logical_operator_placement: LogicalOperatorPlacement,
+    /// How an explicit cast is spelled: "cast" for `CAST(x AS t)`, "operator" for `x::t`.
+    /// Default: "cast".
+    #[partial(bpaf(long("cast-style")))]
+    pub cast_style: CastStyle,
     /// If `true`, skip formatting of SQL function bodies (keep them verbatim). Default: `false`.
     #[partial(bpaf(long("skip-fn-bodies")))]
     pub skip_fn_bodies: bool,
@@ -191,6 +226,7 @@ impl Default for FormatConfiguration {
             type_case: KeywordCase::default(),
             comma_style: CommaStyle::default(),
             logical_operator_placement: LogicalOperatorPlacement::default(),
+            cast_style: CastStyle::default(),
             skip_fn_bodies: false,
             ignore: Default::default(),
             include: Default::default(),
