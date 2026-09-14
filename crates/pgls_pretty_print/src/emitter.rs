@@ -1,6 +1,8 @@
-use crate::FormatConfig;
+use std::collections::HashMap;
+
 pub use crate::codegen::group_kind::GroupKind;
 pub use crate::codegen::token_kind::TokenKind;
+use crate::{Comment, FormatConfig};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LineType {
@@ -39,13 +41,22 @@ pub enum LayoutEvent {
 pub struct EventEmitter {
     pub events: Vec<LayoutEvent>,
     config: FormatConfig,
+    /// Comments still waiting to be emitted, by the source location of the node they precede.
+    /// Entries are removed as they are emitted so that a comment cannot be printed twice, and so
+    /// that the caller can check the map is empty afterwards.
+    comments: HashMap<i32, Vec<Comment>>,
 }
 
 impl EventEmitter {
     pub fn new(config: FormatConfig) -> Self {
+        Self::with_comments(config, HashMap::new())
+    }
+
+    pub fn with_comments(config: FormatConfig, comments: HashMap<i32, Vec<Comment>>) -> Self {
         Self {
             events: Vec::new(),
             config,
+            comments,
         }
     }
 
@@ -70,6 +81,27 @@ impl EventEmitter {
     pub fn comment(&mut self, text: String, line_comment: bool) {
         self.events
             .push(LayoutEvent::Comment { text, line_comment });
+    }
+
+    /// Emits and consumes the comments attached to `location`, if any.
+    pub fn take_comments_at(&mut self, location: i32) {
+        let Some(comments) = self.comments.remove(&location) else {
+            return;
+        };
+
+        for comment in comments {
+            let line_comment = comment.line_comment;
+            self.comment(comment.text, line_comment);
+            if line_comment {
+                self.line(LineType::Hard);
+            } else {
+                self.space();
+            }
+        }
+    }
+
+    pub fn pending_comments(&self) -> usize {
+        self.comments.values().map(Vec::len).sum()
     }
 
     pub fn group_start(&mut self, kind: GroupKind) {
