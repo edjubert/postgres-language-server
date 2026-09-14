@@ -18,7 +18,10 @@ use pgls_configuration::{
     database::PartialDatabaseConfiguration,
     diagnostics::InvalidIgnorePattern,
     files::FilesConfiguration,
-    format::{CommaStyle, FormatConfiguration, IndentStyle, KeywordCase, LogicalOperatorPlacement},
+    format::{
+        CastStyle, CommaStyle, FormatConfiguration, IndentStyle, KeywordCase,
+        LogicalOperatorPlacement,
+    },
     migrations::{MigrationsConfiguration, PartialMigrationsConfiguration},
     pglinter::PglinterConfiguration,
     plpgsql_check::PlPgSqlCheckConfiguration,
@@ -378,6 +381,7 @@ fn to_formatter_settings(
         type_case: conf.type_case,
         comma_style: conf.comma_style,
         logical_operator_placement: conf.logical_operator_placement,
+        cast_style: conf.cast_style,
         skip_fn_bodies: conf.skip_fn_bodies,
         ignored_files: to_matcher(working_directory.clone(), Some(&conf.ignore))?,
         included_files: to_matcher(working_directory.clone(), Some(&conf.include))?,
@@ -586,6 +590,9 @@ pub struct FormatterSettings {
     /// Where a boolean operator sits when a condition breaks: trailing or leading. Default: trailing.
     pub logical_operator_placement: LogicalOperatorPlacement,
 
+    /// How an explicit cast is spelled: cast or operator. Default: cast.
+    pub cast_style: CastStyle,
+
     /// If true, skip formatting of SQL function bodies (keep them verbatim). Default: false.
     pub skip_fn_bodies: bool,
 
@@ -608,6 +615,7 @@ impl Default for FormatterSettings {
             type_case: KeywordCase::default(),
             comma_style: CommaStyle::default(),
             logical_operator_placement: LogicalOperatorPlacement::default(),
+            cast_style: CastStyle::default(),
             skip_fn_bodies: false,
             ignored_files: Matcher::empty(),
             included_files: Matcher::empty(),
