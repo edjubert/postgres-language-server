@@ -125,6 +125,7 @@ impl From<FormatConfig> for RenderConfig {
             type_case,
             comma_style: _,
             logical_operator_placement: _,
+            cast_style: _,
         } = config;
 
         Self {
