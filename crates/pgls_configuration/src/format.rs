@@ -70,6 +70,37 @@ impl From<KeywordCase> for pgls_pretty_print::renderer::KeywordCase {
     }
 }
 
+/// How a statement is laid out across lines.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Merge, PartialEq, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum Layout {
+    #[default]
+    Fit,
+    Expanded,
+}
+
+impl FromStr for Layout {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "fit" => Ok(Self::Fit),
+            "expanded" => Ok(Self::Expanded),
+            _ => Err("Value not supported for Layout. Use 'fit' or 'expanded'."),
+        }
+    }
+}
+
+impl From<Layout> for pgls_pretty_print::Layout {
+    fn from(layout: Layout) -> Self {
+        match layout {
+            Layout::Fit => Self::Fit,
+            Layout::Expanded => Self::Expanded,
+        }
+    }
+}
+
 /// The configuration for SQL formatting.
 #[derive(Clone, Debug, Deserialize, Eq, Partial, PartialEq, Serialize)]
 #[partial(derive(Bpaf, Clone, Eq, PartialEq, Merge))]
@@ -97,6 +128,10 @@ pub struct FormatConfiguration {
     /// Data type casing (text, varchar, int): "upper" or "lower". Default: "lower".
     #[partial(bpaf(long("type-case")))]
     pub type_case: KeywordCase,
+    /// How a statement is laid out: "fit" breaks only when a line would exceed the line width,
+    /// "expanded" always breaks between clauses. Default: "fit".
+    #[partial(bpaf(long("layout")))]
+    pub layout: Layout,
     /// If `true`, skip formatting of SQL function bodies (keep them verbatim). Default: `false`.
     #[partial(bpaf(long("skip-fn-bodies")))]
     pub skip_fn_bodies: bool,
@@ -118,6 +153,7 @@ impl Default for FormatConfiguration {
             keyword_case: KeywordCase::default(),
             constant_case: KeywordCase::default(),
             type_case: KeywordCase::default(),
+            layout: Layout::default(),
             skip_fn_bodies: false,
             ignore: Default::default(),
             include: Default::default(),
