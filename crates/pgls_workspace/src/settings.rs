@@ -377,6 +377,7 @@ fn to_formatter_settings(
         constant_case: conf.constant_case,
         type_case: conf.type_case,
         clause_body_style: conf.clause_body_style,
+        isolate_semicolon: conf.isolate_semicolon,
         skip_fn_bodies: conf.skip_fn_bodies,
         ignored_files: to_matcher(working_directory.clone(), Some(&conf.ignore))?,
         included_files: to_matcher(working_directory.clone(), Some(&conf.include))?,
@@ -582,6 +583,10 @@ pub struct FormatterSettings {
     /// Where the body of a clause starts: break or compact. Default: break.
     pub clause_body_style: ClauseBodyStyle,
 
+    /// If true, the terminating semicolon goes on its own line when the statement spans several
+    /// lines. Default: false.
+    pub isolate_semicolon: bool,
+
     /// If true, skip formatting of SQL function bodies (keep them verbatim). Default: false.
     pub skip_fn_bodies: bool,
 
@@ -603,6 +608,7 @@ impl Default for FormatterSettings {
             constant_case: KeywordCase::default(),
             type_case: KeywordCase::default(),
             clause_body_style: ClauseBodyStyle::default(),
+            isolate_semicolon: false,
             skip_fn_bodies: false,
             ignored_files: Matcher::empty(),
             included_files: Matcher::empty(),

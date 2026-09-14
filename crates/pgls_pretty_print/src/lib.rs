@@ -58,6 +58,9 @@ pub struct FormatConfig {
     pub type_case: KeywordCase,
     /// Where the body of a clause starts. Default: Break.
     pub clause_body_style: ClauseBodyStyle,
+    /// Put the terminating semicolon on its own line when the statement spans several lines.
+    /// Default: false.
+    pub isolate_semicolon: bool,
 }
 
 impl Default for FormatConfig {
@@ -70,6 +73,7 @@ impl Default for FormatConfig {
             constant_case: KeywordCase::default(),
             type_case: KeywordCase::default(),
             clause_body_style: ClauseBodyStyle::default(),
+            isolate_semicolon: false,
         }
     }
 }
@@ -83,6 +87,7 @@ impl From<FormatConfig> for RenderConfig {
             keyword_case: config.keyword_case,
             constant_case: config.constant_case,
             type_case: config.type_case,
+            isolate_semicolon: config.isolate_semicolon,
         }
     }
 }
@@ -128,6 +133,7 @@ pub fn format_statement(
         keyword_case: config.keyword_case.clone(),
         constant_case: config.constant_case.clone(),
         type_case: config.type_case.clone(),
+        isolate_semicolon: config.isolate_semicolon,
     };
 
     let mut output = String::new();
