@@ -325,7 +325,7 @@ mod tests {
 
     #[test]
     fn test_keyword_case_upper() {
-        let mut emitter = EventEmitter::new();
+        let mut emitter = EventEmitter::new(crate::FormatConfig::default());
         emitter.token(TokenKind::SELECT_KW);
         emitter.space();
         emitter.token(TokenKind::INT_NUMBER(1));
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn test_keyword_case_lower() {
-        let mut emitter = EventEmitter::new();
+        let mut emitter = EventEmitter::new(crate::FormatConfig::default());
         emitter.token(TokenKind::SELECT_KW);
         emitter.space();
         emitter.token(TokenKind::INT_NUMBER(1));
@@ -359,7 +359,7 @@ mod tests {
 
     #[test]
     fn test_constant_case_upper() {
-        let mut emitter = EventEmitter::new();
+        let mut emitter = EventEmitter::new(crate::FormatConfig::default());
         emitter.token(TokenKind::SELECT_KW);
         emitter.space();
         emitter.token(TokenKind::NULL);
@@ -382,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_constant_case_lower() {
-        let mut emitter = EventEmitter::new();
+        let mut emitter = EventEmitter::new(crate::FormatConfig::default());
         emitter.token(TokenKind::SELECT_KW);
         emitter.space();
         emitter.token(TokenKind::NULL);
@@ -402,7 +402,7 @@ mod tests {
 
     #[test]
     fn test_mixed_case_settings() {
-        let mut emitter = EventEmitter::new();
+        let mut emitter = EventEmitter::new(crate::FormatConfig::default());
         emitter.token(TokenKind::SELECT_KW);
         emitter.space();
         emitter.token(TokenKind::INT_NUMBER(1));
