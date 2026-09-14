@@ -38,6 +38,7 @@ Configure formatting behavior in your `postgres-language-server.jsonc`:
 | `constantCase` | `"lower"` | Casing for constants (NULL, TRUE, FALSE): `"upper"` or `"lower"` |
 | `typeCase` | `"lower"` | Casing for data types (text, int, varchar): `"upper"` or `"lower"` |
 | `clauseBodyStyle` | `"break"` | Where a clause body starts: `"break"` for a new line, `"compact"` to keep the first element on the keyword line |
+| `isolateSemicolon` | `false` | Put the terminating semicolon on its own line when the statement spans several lines |
 
 ### Example Output
 
