@@ -152,7 +152,10 @@ impl<W: Write> Renderer<W> {
                     // already spans several lines and the terminator can stand alone. A statement
                     // that fits is rendered by try_single_line, which never reaches this code, and
                     // therefore keeps its semicolon attached.
-                    if self.config.isolate_semicolon && matches!(token, TokenKind::SEMICOLON) {
+                    if self.config.isolate_semicolon
+                        && matches!(token, TokenKind::SEMICOLON)
+                        && !self.at_line_start
+                    {
                         self.write_line_break()?;
                     }
 
@@ -481,6 +484,28 @@ mod tests {
 
         let output = render_events(emitter.events, config);
         assert_eq!(output, "select\n1\n;");
+    }
+
+    #[test]
+    fn a_line_comment_does_not_create_a_blank_line_before_an_isolated_semicolon() {
+        let mut emitter = EventEmitter::new(crate::FormatConfig::default());
+        emitter.group_start(GroupKind::SelectStmt);
+        emitter.token(TokenKind::SELECT_KW);
+        emitter.space();
+        emitter.token(TokenKind::INT_NUMBER(1));
+        emitter.space();
+        emitter.comment("-- keep this context".to_string(), true);
+        emitter.line(crate::emitter::LineType::Hard);
+        emitter.token(TokenKind::SEMICOLON);
+        emitter.group_end();
+
+        let config = RenderConfig {
+            isolate_semicolon: true,
+            ..Default::default()
+        };
+
+        let output = render_events(emitter.events, config);
+        assert_eq!(output, "select 1 -- keep this context\n;");
     }
 
     #[test]
