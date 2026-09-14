@@ -45,6 +45,16 @@ pub enum FormatError {
     NonIdempotentCommentLayout { passes: usize },
 }
 
+/// Where the body of a clause starts.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum ClauseBodyStyle {
+    /// The body starts on the line after the keyword.
+    #[default]
+    Break,
+    /// The first element of the body stays on the keyword line: `FROM plan`.
+    Compact,
+}
+
 /// Configuration for the SQL formatter.
 #[derive(Debug, Clone)]
 pub struct FormatConfig {
@@ -60,6 +70,8 @@ pub struct FormatConfig {
     pub constant_case: KeywordCase,
     /// Casing for data types (text, varchar, int). Default: Lower.
     pub type_case: KeywordCase,
+    /// Where the body of a clause starts. Default: Break.
+    pub clause_body_style: ClauseBodyStyle,
 }
 
 impl Default for FormatConfig {
@@ -71,6 +83,7 @@ impl Default for FormatConfig {
             keyword_case: KeywordCase::default(),
             constant_case: KeywordCase::default(),
             type_case: KeywordCase::default(),
+            clause_body_style: ClauseBodyStyle::default(),
         }
     }
 }

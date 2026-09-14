@@ -37,6 +37,7 @@ Configure formatting behavior in your `postgres-language-server.jsonc`:
 | `keywordCase` | `"lower"` | Casing for SQL keywords: `"upper"` or `"lower"` |
 | `constantCase` | `"lower"` | Casing for constants (NULL, TRUE, FALSE): `"upper"` or `"lower"` |
 | `typeCase` | `"lower"` | Casing for data types (text, int, varchar): `"upper"` or `"lower"` |
+| `clauseBodyStyle` | `"break"` | Where a clause body starts: `"break"` for a new line, `"compact"` to keep the first element on the keyword line |
 
 ### Example Output
 
