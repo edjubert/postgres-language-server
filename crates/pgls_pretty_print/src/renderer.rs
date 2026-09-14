@@ -1,3 +1,4 @@
+use crate::TokenKind;
 use crate::emitter::{LayoutEvent, LineType};
 use std::fmt::Write;
 
@@ -143,6 +144,14 @@ impl<W: Write> Renderer<W> {
         while i < events.len() {
             match &events[i] {
                 LayoutEvent::Token(token) => {
+                    // This path is only taken when the enclosing group broke, so the statement
+                    // already spans several lines and the terminator can stand alone. A statement
+                    // that fits is rendered by try_single_line, which never reaches this code, and
+                    // therefore keeps its semicolon attached.
+                    if self.config.isolate_semicolon && matches!(token, TokenKind::SEMICOLON) {
+                        self.write_line_break()?;
+                    }
+
                     let text = token.render(&self.config);
                     self.write_text(&text)?;
                     i += 1;
@@ -317,7 +326,7 @@ impl<W: Write> Renderer<W> {
 mod tests {
     use super::*;
     use crate::codegen::token_kind::TokenKind;
-    use crate::emitter::EventEmitter;
+    use crate::emitter::{EventEmitter, GroupKind};
 
     fn render_events(events: Vec<LayoutEvent>, config: RenderConfig) -> String {
         let mut output = String::new();
@@ -437,5 +446,41 @@ mod tests {
 
         let output = render_events(emitter.events, config);
         assert_eq!(output, "SELECT 1 WHERE name IS NOT null AND active = true");
+    }
+
+    #[test]
+    fn a_broken_statement_gets_its_semicolon_on_its_own_line() {
+        let mut emitter = EventEmitter::new(crate::FormatConfig::default());
+        emitter.group_start(GroupKind::SelectStmt);
+        emitter.token(TokenKind::SELECT_KW);
+        emitter.line(crate::emitter::LineType::Hard);
+        emitter.token(TokenKind::INT_NUMBER(1));
+        emitter.token(TokenKind::SEMICOLON);
+        emitter.group_end();
+
+        let config = RenderConfig {
+            isolate_semicolon: true,
+            ..Default::default()
+        };
+
+        let output = render_events(emitter.events, config);
+        assert_eq!(output, "select\n1\n;");
+    }
+
+    #[test]
+    fn a_single_line_statement_keeps_its_semicolon_attached() {
+        let mut emitter = EventEmitter::new(crate::FormatConfig::default());
+        emitter.token(TokenKind::SELECT_KW);
+        emitter.space();
+        emitter.token(TokenKind::INT_NUMBER(1));
+        emitter.token(TokenKind::SEMICOLON);
+
+        let config = RenderConfig {
+            isolate_semicolon: true,
+            ..Default::default()
+        };
+
+        let output = render_events(emitter.events, config);
+        assert_eq!(output, "select 1;");
     }
 }
