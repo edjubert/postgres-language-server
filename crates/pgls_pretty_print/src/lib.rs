@@ -5,6 +5,8 @@ pub mod nodes;
 pub mod normalize;
 pub mod renderer;
 
+use std::collections::HashSet;
+
 pub use crate::codegen::token_kind::TokenKind;
 pub use crate::comments::{AttachedComments, Comment, attach_comments};
 pub use crate::normalize::normalize_ast;
@@ -46,6 +48,12 @@ pub enum FormatError {
     /// A comment could not be placed in the formatted output.
     #[error("Formatter: {count} comment(s) could not be placed, the statement was left as written")]
     UnplaceableComment { count: usize },
+
+    /// Reformatting a statement with comments produced a cycle instead of a fixed layout.
+    #[error(
+        "Formatter: comment layout did not stabilize after {passes} passes, the statement was left as written"
+    )]
+    NonIdempotentCommentLayout { passes: usize },
 }
 
 /// How an explicit cast is spelled.
@@ -196,9 +204,56 @@ pub fn format_statement(
     sql: &str,
     config: &FormatConfig,
 ) -> Result<FormatResult, FormatError> {
+    const MAX_COMMENT_FORMAT_PASSES: usize = 6;
+
+    let mut current_sql = sql.to_string();
+    let mut current_ast = ast.clone();
+    let mut attached = comments::attach_comments(&current_sql, &current_ast);
+    let has_comments = !attached.leading_by_location.is_empty()
+        || !attached.trailing_by_location.is_empty()
+        || !attached.unattached.is_empty();
+
+    if !has_comments {
+        return format_statement_once(&current_ast, config, attached);
+    }
+
+    let mut seen_layouts = HashSet::from([current_sql.clone()]);
+
+    for pass in 1..=MAX_COMMENT_FORMAT_PASSES {
+        let result = format_statement_once(&current_ast, config, attached)?;
+        if result.formatted == current_sql {
+            return Ok(result);
+        }
+
+        if !seen_layouts.insert(result.formatted.clone()) {
+            return Err(FormatError::NonIdempotentCommentLayout { passes: pass });
+        }
+
+        current_sql = result.formatted;
+        current_ast = pgls_query::parse(&current_sql)
+            .map_err(|e| FormatError::ParseError {
+                message: format!("Formatted SQL failed to parse: {e}"),
+            })?
+            .into_root()
+            .ok_or_else(|| FormatError::ParseError {
+                message: "No root node in parsed output (expected single statement)".to_string(),
+            })?;
+        attached = comments::attach_comments(&current_sql, &current_ast);
+    }
+
+    Err(FormatError::NonIdempotentCommentLayout {
+        passes: MAX_COMMENT_FORMAT_PASSES,
+    })
+}
+
+/// Formats a statement exactly once, including semantic verification.
+fn format_statement_once(
+    ast: &NodeEnum,
+    config: &FormatConfig,
+    attached: AttachedComments,
+) -> Result<FormatResult, FormatError> {
     // A comment that no node follows cannot be placed. Refusing here preserves the original text,
     // which is safer than emitting a statement that would silently drop it.
-    let attached = comments::attach_comments(sql, ast);
     if !attached.unattached.is_empty() {
         return Err(FormatError::UnplaceableComment {
             count: attached.unattached.len(),
@@ -378,6 +433,31 @@ mod tests {
             .formatted;
 
         assert!(first.contains("-- temporarily omit b"));
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn formatting_a_comment_after_a_case_expression_is_idempotent() {
+        let sql = "SELECT CASE WHEN active THEN 'MANUEL' ELSE 'CALCUL' END -- status source\nAS status FROM accounts;";
+        let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
+        let config = FormatConfig {
+            indent_size: 4,
+            indent_style: IndentStyle::Tabs,
+            keyword_case: KeywordCase::Upper,
+            layout: Layout::Expanded,
+            isolate_semicolon: true,
+            ..Default::default()
+        };
+
+        let first = format_statement(&ast, sql, &config)
+            .expect("first pass")
+            .formatted;
+        let reparsed = pgls_query::parse(&first).unwrap().into_root().unwrap();
+        let second = format_statement(&reparsed, &first, &config)
+            .expect("second pass")
+            .formatted;
+
+        assert!(first.contains("-- status source"));
         assert_eq!(first, second);
     }
 }
