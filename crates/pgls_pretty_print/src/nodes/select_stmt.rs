@@ -4,7 +4,7 @@ use pgls_query::{
 };
 
 use crate::emitter::{EventEmitter, GroupKind, LineType};
-use crate::{ClauseBodyStyle, TokenKind};
+use crate::{ClauseBodyStyle, CommaStyle, TokenKind};
 
 use super::{
     node_list::emit_comma_separated_list, string::emit_keyword, window_def::emit_window_definition,
@@ -192,8 +192,14 @@ fn emit_select_stmt_impl(e: &mut EventEmitter, n: &SelectStmt, with_semicolon: b
 
             for (index, target) in n.target_list.iter().enumerate() {
                 if index > 0 {
-                    e.token(TokenKind::COMMA);
-                    super::emit_layout_break(e);
+                    if matches!(e.config().comma_style, CommaStyle::Leading) {
+                        super::emit_layout_break(e);
+                        e.token(TokenKind::COMMA);
+                        e.space();
+                    } else {
+                        e.token(TokenKind::COMMA);
+                        super::emit_layout_break(e);
+                    }
                 }
                 super::emit_node(target, e);
             }
