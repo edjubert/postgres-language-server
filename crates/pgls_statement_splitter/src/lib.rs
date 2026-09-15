@@ -519,6 +519,12 @@ SELECT id FROM cte;",
     }
 
     #[test]
+    fn trailing_line_comment_before_a_semicolon_belongs_to_the_statement() {
+        Tester::from("select 1 -- keep this context\n;")
+            .expect_statements(vec!["select 1 -- keep this context\n;"]);
+    }
+
+    #[test]
     fn trigger_instead_of() {
         Tester::from(
             "CREATE OR REPLACE TRIGGER my_trigger
