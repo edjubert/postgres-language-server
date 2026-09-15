@@ -438,6 +438,31 @@ mod tests {
     }
 
     #[test]
+    fn formatting_a_comment_after_a_case_expression_is_idempotent() {
+        let sql = "SELECT CASE WHEN active THEN 'MANUEL' ELSE 'CALCUL' END -- status source\nAS status FROM accounts;";
+        let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
+        let config = FormatConfig {
+            indent_size: 4,
+            indent_style: IndentStyle::Tabs,
+            keyword_case: KeywordCase::Upper,
+            layout: Layout::Expanded,
+            isolate_semicolon: true,
+            ..Default::default()
+        };
+
+        let first = format_statement(&ast, sql, &config)
+            .expect("first pass")
+            .formatted;
+        let reparsed = pgls_query::parse(&first).unwrap().into_root().unwrap();
+        let second = format_statement(&reparsed, &first, &config)
+            .expect("second pass")
+            .formatted;
+
+        assert!(first.contains("-- status source"));
+        assert_eq!(first, second);
+    }
+
+    #[test]
     fn formatting_a_comment_before_a_conjunction_is_idempotent() {
         let sql = "SELECT * FROM s.t WHERE a = 1\n-- keep b out for now\nAND b = 2;";
         let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
