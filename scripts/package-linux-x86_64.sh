@@ -23,4 +23,7 @@ install -m 0755 \
 	"$staging_dir/postgres-language-server"
 
 tar -C "$staging_dir" -czf "$output_dir/$asset_name" postgres-language-server
-sha256sum "$output_dir/$asset_name" > "$output_dir/SHA256SUMS"
+(
+	cd "$output_dir"
+	sha256sum "$asset_name" > SHA256SUMS
+)
