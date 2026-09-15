@@ -274,10 +274,11 @@ fn pick_dollar_delimiter(body: &str, hint: DollarQuoteHint) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::FormatConfig;
     use crate::renderer::{KeywordCase, RenderConfig, Renderer};
 
     fn render(value: &str, type_case: KeywordCase) -> String {
-        let mut emitter = EventEmitter::new();
+        let mut emitter = EventEmitter::new(FormatConfig::default());
         emit_type_identifier_maybe_quoted(&mut emitter, value);
 
         let mut output = String::new();
