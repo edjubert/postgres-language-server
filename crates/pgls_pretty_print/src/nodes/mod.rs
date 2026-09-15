@@ -528,6 +528,12 @@ use crate::emitter::{EventEmitter, GroupKind};
 use pgls_query::{NodeEnum, protobuf::Node};
 
 pub fn emit_node(node: &Node, e: &mut EventEmitter) {
+    if let Some(inner) = node.node.as_ref()
+        && let Some(location) = crate::codegen::node_location::node_location(&inner.to_ref())
+    {
+        e.take_comments_at(location);
+    }
+
     if let Some(ref inner) = node.node {
         emit_node_enum(inner, e)
     }
@@ -846,7 +852,7 @@ pub fn emit_node_enum(node: &NodeEnum, e: &mut EventEmitter) {
 mod tests {
     use super::*;
     use crate::emitter::{EventEmitter, LayoutEvent, LineType};
-    use crate::{FormatConfig, Layout};
+    use crate::{FormatConfig, Layout, attach_comments};
 
     #[test]
     fn fit_layout_emits_a_soft_or_space_break() {
@@ -864,5 +870,29 @@ mod tests {
         let mut e = EventEmitter::new(config);
         emit_layout_break(&mut e);
         assert_eq!(e.events, vec![LayoutEvent::Line(LineType::Hard)]);
+
+    #[test]
+    fn a_comment_attached_to_a_node_is_emitted_before_it() {
+        let sql = "SELECT\n-- pick the magic value\n1 FROM s.t";
+        let ast = pgls_query::parse(sql)
+            .expect("parse")
+            .into_root()
+            .expect("root");
+
+        let attached = attach_comments(sql, &ast);
+        let mut e = EventEmitter::with_comments(FormatConfig::default(), attached.by_location);
+        super::emit_node_enum(&ast, &mut e);
+
+        let comments: Vec<&LayoutEvent> = e
+            .events
+            .iter()
+            .filter(|event| matches!(event, LayoutEvent::Comment { .. }))
+            .collect();
+
+        assert_eq!(comments.len(), 1);
+        assert!(matches!(
+            comments[0],
+            LayoutEvent::Comment { text, line_comment: true } if text == "-- pick the magic value"
+        ));
     }
 }
