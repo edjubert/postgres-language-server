@@ -41,6 +41,16 @@ pub enum CastStyle {
     Operator,
 }
 
+/// Where the body of a clause starts.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum ClauseBodyStyle {
+    /// The body starts on the line after the keyword.
+    #[default]
+    Break,
+    /// The first element of the body stays on the keyword line: `FROM plan`.
+    Compact,
+}
+
 /// Configuration for the SQL formatter.
 /// Where a comma sits when a list breaks across lines.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -82,6 +92,8 @@ pub struct FormatConfig {
     pub logical_operator_placement: LogicalOperatorPlacement,
     /// How an explicit cast is spelled. Default: Cast.
     pub cast_style: CastStyle,
+    /// Where the body of a clause starts. Default: Break.
+    pub clause_body_style: ClauseBodyStyle,
 }
 
 impl Default for FormatConfig {
@@ -96,6 +108,7 @@ impl Default for FormatConfig {
             comma_style: CommaStyle::default(),
             logical_operator_placement: LogicalOperatorPlacement::default(),
             cast_style: CastStyle::default(),
+            clause_body_style: ClauseBodyStyle::default(),
         }
     }
 }
