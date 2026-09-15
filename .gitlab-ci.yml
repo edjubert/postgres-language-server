@@ -24,6 +24,7 @@ verify:
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends clang libclang-dev pkg-config
+    - rustup component add rustfmt clippy
     - cargo install --root /usr/local/cargo tree-sitter-cli --version "$(cat .tree-sitter-cli-version)" --locked
   script:
     - cargo fmt --all -- --check
