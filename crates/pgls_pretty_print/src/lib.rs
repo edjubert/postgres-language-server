@@ -31,6 +31,16 @@ pub enum FormatError {
     BetaUnsupported { message: String },
 }
 
+/// How an explicit cast is spelled.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum CastStyle {
+    /// `CAST(expr AS type)`.
+    #[default]
+    Cast,
+    /// `expr::type`.
+    Operator,
+}
+
 /// Configuration for the SQL formatter.
 /// Where a comma sits when a list breaks across lines.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -70,6 +80,8 @@ pub struct FormatConfig {
     pub comma_style: CommaStyle,
     /// Where a boolean operator sits when a condition breaks. Default: Trailing.
     pub logical_operator_placement: LogicalOperatorPlacement,
+    /// How an explicit cast is spelled. Default: Cast.
+    pub cast_style: CastStyle,
 }
 
 impl Default for FormatConfig {
@@ -83,6 +95,7 @@ impl Default for FormatConfig {
             type_case: KeywordCase::default(),
             comma_style: CommaStyle::default(),
             logical_operator_placement: LogicalOperatorPlacement::default(),
+            cast_style: CastStyle::default(),
         }
     }
 }
@@ -98,6 +111,7 @@ impl From<FormatConfig> for RenderConfig {
             type_case,
             comma_style: _,
             logical_operator_placement: _,
+            cast_style: _,
         } = config;
 
         Self {
