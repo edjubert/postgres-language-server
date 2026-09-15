@@ -493,6 +493,33 @@ SELECT 2;"
     }
 
     #[test]
+    fn create_as_with_values_cte() {
+        let create = "CREATE TABLE mappers.alur_zones AS
+WITH
+    zone_ranks (zone_alur, tension_rank) AS (
+        VALUES
+            ('Abis', 1),
+            ('A', 2),
+            ('B1', 3),
+            ('B2', 4),
+            ('C', 5)
+    )
+SELECT
+    code_postal AS zip_code,
+    commune,
+    zone_alur
+FROM apis.alur_zones;";
+        let input = format!(
+            "{create}
+SELECT 2;"
+        );
+
+        Tester::from(input.as_str())
+            .expect_statements(vec![create, "SELECT 2;"])
+            .assert_no_errors();
+    }
+
+    #[test]
     fn create_view_with_options_as_cte() {
         Tester::from(
             "CREATE VIEW target WITH (security_invoker) AS
