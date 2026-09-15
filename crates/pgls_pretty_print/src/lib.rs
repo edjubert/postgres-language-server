@@ -145,6 +145,7 @@ impl From<FormatConfig> for RenderConfig {
             cast_style: _,
             clause_body_style: _,
             isolate_semicolon,
+            layout: _,
         } = config;
 
         Self {
