@@ -1,0 +1,89 @@
+stages:
+  - verify
+  - package
+  - release
+
+variables:
+  CARGO_HOME: "$CI_PROJECT_DIR/.cargo"
+  CARGO_TARGET_DIR: "$CI_PROJECT_DIR/target"
+  GIT_SUBMODULE_STRATEGY: recursive
+  RUSTUP_TOOLCHAIN: "1.88.0-x86_64-unknown-linux-gnu"
+  PGLS_PACKAGE_NAME: "postgres-language-server"
+  PGLS_LINUX_ASSET: "postgres-language-server-linux-x86_64.tar.gz"
+  PGLS_LINUX_TARGET: "x86_64-unknown-linux-gnu"
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG =~ /^v?[0-9]+\.[0-9]+\.[0-9]+-imata-[0-9]+$/'
+
+verify:
+  stage: verify
+  image: rust:1.88-bookworm
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends clang libclang-dev pkg-config
+    - cargo install --root /usr/local/cargo tree-sitter-cli --version "$(cat .tree-sitter-cli-version)" --locked
+  script:
+    - cargo fmt --all -- --check
+    - cargo clippy --all-targets --all-features -- -D warnings
+
+package linux x86_64:
+  stage: package
+  image: rust:1.88-bookworm
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v?[0-9]+\.[0-9]+\.[0-9]+-imata-[0-9]+$/'
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends build-essential clang libclang-dev pkg-config
+    - cargo install --root /usr/local/cargo tree-sitter-cli --version "$(cat .tree-sitter-cli-version)" --locked
+  script:
+    - scripts/package-linux-x86_64.sh dist
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - dist/$PGLS_LINUX_ASSET
+      - dist/SHA256SUMS
+
+publish package:
+  stage: release
+  image: debian:bookworm-slim
+  needs:
+    - job: package linux x86_64
+      artifacts: true
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v?[0-9]+\.[0-9]+\.[0-9]+-imata-[0-9]+$/'
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends ca-certificates curl
+  script:
+    - |
+      for asset in "$PGLS_LINUX_ASSET" SHA256SUMS; do
+        curl --fail --location --retry 3 \
+          --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+          --upload-file "dist/$asset" \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PGLS_PACKAGE_NAME/$CI_COMMIT_TAG/$asset"
+      done
+
+create release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - publish package
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v?[0-9]+\.[0-9]+\.[0-9]+-imata-[0-9]+$/'
+  script:
+    - echo "Publishing $CI_COMMIT_TAG"
+  release:
+    tag_name: "$CI_COMMIT_TAG"
+    name: "Postgres Language Server $CI_COMMIT_TAG"
+    description: "Patched formatter binary for data-ml."
+    assets:
+      links:
+        - name: "$PGLS_LINUX_ASSET"
+          url: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PGLS_PACKAGE_NAME/$CI_COMMIT_TAG/$PGLS_LINUX_ASSET"
+          link_type: package
+        - name: "SHA256SUMS"
+          url: "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PGLS_PACKAGE_NAME/$CI_COMMIT_TAG/SHA256SUMS"
+          link_type: package
