@@ -989,7 +989,7 @@ impl Workspace for WorkspaceServer {
                     continue;
                 }
 
-                let Ok(result) = pgls_pretty_print::format_statement(ast, &config) else {
+                let Ok(result) = pgls_pretty_print::format_statement(ast, text, &config) else {
                     continue;
                 };
 
@@ -1043,7 +1043,7 @@ impl Workspace for WorkspaceServer {
                         sql_function::set_sql_fn_body(&mut ast, formatted_sql_fn_body);
                     }
 
-                    match pgls_pretty_print::format_statement(&ast, &config) {
+                    match pgls_pretty_print::format_statement(&ast, &text, &config) {
                         Ok(result) => {
                             match restore_named_parameters(&text, &result.formatted, &ast) {
                                 Some(formatted) => {
