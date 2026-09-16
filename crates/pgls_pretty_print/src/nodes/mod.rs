@@ -549,6 +549,22 @@ pub(super) fn emit_clause_condition(e: &mut EventEmitter, clause: &Node) {
     e.indent_end();
 }
 
+/// Emits the break that separates a statement clause from the previous one.
+///
+/// In expanded layout it is a `Hard` line, which `try_single_line` refuses to collapse, so the
+/// break propagates to every enclosing group and the whole statement opens up. That propagation is
+/// why expanded layout needs no renderer change.
+#[allow(dead_code)] // Consumed by the clause emitters introduced in task 3.
+pub(super) fn emit_layout_break(e: &mut EventEmitter) {
+    use crate::Layout;
+    use crate::emitter::LineType;
+
+    match e.config().layout {
+        Layout::Expanded => e.line(LineType::Hard),
+        Layout::Fit => e.line(LineType::SoftOrSpace),
+    }
+}
+
 pub fn emit_node_enum(node: &NodeEnum, e: &mut EventEmitter) {
     match &node {
         NodeEnum::RawStmt(n) => emit_raw_stmt(e, n),
@@ -823,5 +839,30 @@ pub fn emit_node_enum(node: &NodeEnum, e: &mut EventEmitter) {
         NodeEnum::CommonTableExpr(n) => emit_common_table_expr(e, n),
         NodeEnum::FromExpr(n) => emit_from_expr(e, n),
         NodeEnum::Query(n) => emit_query(e, n),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::emitter::{EventEmitter, LayoutEvent, LineType};
+    use crate::{FormatConfig, Layout};
+
+    #[test]
+    fn fit_layout_emits_a_soft_or_space_break() {
+        let mut e = EventEmitter::new(FormatConfig::default());
+        emit_layout_break(&mut e);
+        assert_eq!(e.events, vec![LayoutEvent::Line(LineType::SoftOrSpace)]);
+    }
+
+    #[test]
+    fn expanded_layout_emits_a_hard_break() {
+        let config = FormatConfig {
+            layout: Layout::Expanded,
+            ..Default::default()
+        };
+        let mut e = EventEmitter::new(config);
+        emit_layout_break(&mut e);
+        assert_eq!(e.events, vec![LayoutEvent::Line(LineType::Hard)]);
     }
 }
