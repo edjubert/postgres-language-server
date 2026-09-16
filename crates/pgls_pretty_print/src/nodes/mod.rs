@@ -870,6 +870,7 @@ mod tests {
         let mut e = EventEmitter::new(config);
         emit_layout_break(&mut e);
         assert_eq!(e.events, vec![LayoutEvent::Line(LineType::Hard)]);
+    }
 
     #[test]
     fn a_comment_attached_to_a_node_is_emitted_before_it() {
