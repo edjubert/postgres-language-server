@@ -3,7 +3,7 @@ use dir_test::{Fixture, dir_test};
 use insta::{assert_snapshot, with_settings};
 
 use pgls_pretty_print::{
-    CastStyle, ClauseBodyStyle, CommaStyle, FormatConfig, LogicalOperatorPlacement,
+    CastStyle, ClauseBodyStyle, CommaStyle, FormatConfig, Layout, LogicalOperatorPlacement,
     emitter::EventEmitter,
     nodes::emit_node_enum,
     normalize::normalize_ast,
@@ -100,6 +100,8 @@ fn parse_fixture(content: &str) -> (FormatConfig, Option<usize>, String) {
                     .parse()
                     .expect("isolateSemicolon must be true or false");
             }
+            ("layout", "expanded") => config.layout = Layout::Expanded,
+            ("layout", "fit") => config.layout = Layout::Fit,
             (key, value) => panic!("unknown pgls-format entry: {key}={value}"),
         }
     }
