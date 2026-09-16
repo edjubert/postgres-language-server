@@ -104,7 +104,7 @@ pub fn format_statement(
     config: &FormatConfig,
 ) -> Result<FormatResult, FormatError> {
     // Emit layout events from AST
-    let mut emitter = emitter::EventEmitter::new();
+    let mut emitter = emitter::EventEmitter::new(config.clone());
     nodes::emit_node_enum(ast, &mut emitter);
 
     // Render to string
