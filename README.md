@@ -35,6 +35,15 @@ nix develop     # or skip if not using Nix
 docker-compose up -d
 ```
 
+## Internal GitLab release
+
+The `imata/postgres-language-server` mirror publishes the patched Linux binary
+used by `data-ml`. Push a tag matching `0.25.7-imata-<revision>` (for example
+`0.25.7-imata-4`) to build
+`postgres-language-server-linux-x86_64.tar.gz`, upload it with its
+`SHA256SUMS` file to the GitLab Generic Package Registry, and create the
+matching GitLab release.
+
 ## Acknowledgements
 
 A big thanks to the following projects, without which this project wouldn't have been possible:
