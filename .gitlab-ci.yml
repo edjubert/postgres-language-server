@@ -21,6 +21,8 @@ workflow:
 verify:
   stage: verify
   image: rust:1.88-bookworm
+  variables:
+    CARGO_BUILD_JOBS: "1"
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends clang libclang-dev nodejs pkg-config
@@ -33,6 +35,8 @@ verify:
 package linux x86_64:
   stage: package
   image: rust:1.88-bookworm
+  variables:
+    CARGO_BUILD_JOBS: "1"
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v?[0-9]+\.[0-9]+\.[0-9]+-imata-[0-9]+$/'
   before_script:
