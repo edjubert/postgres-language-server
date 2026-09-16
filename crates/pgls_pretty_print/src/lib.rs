@@ -675,6 +675,26 @@ mod tests {
     }
 
     #[test]
+    fn a_comment_before_a_with_clause_of_a_create_table_as_is_kept() {
+        // The corpus shape this fix was written for. It cannot live on the comment support branch:
+        // there, CREATE TABLE AS trips the AST round trip guard for want of the normalize PRs.
+        let sql = "CREATE TABLE s.t AS\n-- how this table is fed\nWITH c AS (SELECT 1 AS a)\nSELECT a FROM c";
+        let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
+        let config = FormatConfig::default();
+
+        let first = format_statement(&ast, sql, &config)
+            .expect("first pass")
+            .formatted;
+        let reparsed = pgls_query::parse(&first).unwrap().into_root().unwrap();
+        let second = format_statement(&reparsed, &first, &config)
+            .expect("second pass")
+            .formatted;
+
+        assert!(first.contains("-- how this table is fed"));
+        assert_eq!(first, second);
+    }
+
+    #[test]
     fn a_comment_before_a_with_clause_is_kept() {
         let sql =
             "INSERT INTO s.u\n-- how this table is fed\nWITH c AS (SELECT 1 AS a)\nSELECT a FROM c";
