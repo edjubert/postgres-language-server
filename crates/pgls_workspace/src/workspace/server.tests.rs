@@ -4,7 +4,13 @@ use std::{
 };
 
 use pgls_analyse::RuleCategories;
-use pgls_configuration::{Merge, StringSet};
+use pgls_configuration::{
+    Merge, StringSet,
+    format::{
+        CastStyle as FormatCastStyle, ClauseBodyStyle, CommaStyle, IndentStyle,
+        KeywordCase as FormatKeywordCase, Layout, LogicalOperatorPlacement,
+    },
+};
 use pgls_configuration::{
     PartialConfiguration, PartialFormatConfiguration, PartialTypecheckConfiguration,
     database::PartialDatabaseConfiguration, files::PartialFilesConfiguration,
@@ -934,12 +940,19 @@ async fn test_format_keeps_sql_function_body_intact() {
 }
 
 fn format_content(content: &str) -> String {
-    let mut conf = PartialConfiguration::init();
-    conf.merge_with(PartialConfiguration {
-        format: Some(PartialFormatConfiguration {
+    format_content_with_config(
+        content,
+        PartialFormatConfiguration {
             enabled: Some(true),
             ..Default::default()
-        }),
+        },
+    )
+}
+
+fn format_content_with_config(content: &str, format: PartialFormatConfiguration) -> String {
+    let mut conf = PartialConfiguration::init();
+    conf.merge_with(PartialConfiguration {
+        format: Some(format),
         ..Default::default()
     });
 
@@ -992,6 +1005,33 @@ async fn test_format_with_trailing_comment_is_idempotent() {
     let second = format_content(&first);
 
     assert!(first.contains("1 -- condition"));
+    assert_eq!(first, second);
+}
+
+#[tokio::test]
+async fn test_expanded_format_with_a_trailing_comment_is_idempotent() {
+    let format = PartialFormatConfiguration {
+        enabled: Some(true),
+        indent_style: Some(IndentStyle::Tabs),
+        indent_size: Some(4),
+        keyword_case: Some(FormatKeywordCase::Upper),
+        constant_case: Some(FormatKeywordCase::Upper),
+        type_case: Some(FormatKeywordCase::Upper),
+        comma_style: Some(CommaStyle::Leading),
+        logical_operator_placement: Some(LogicalOperatorPlacement::Leading),
+        cast_style: Some(FormatCastStyle::Operator),
+        clause_body_style: Some(ClauseBodyStyle::Break),
+        isolate_semicolon: Some(true),
+        layout: Some(Layout::Expanded),
+        ..Default::default()
+    };
+    let first = format_content_with_config(
+        "SELECT * FROM t WHERE type_de_variable <> '011' -- exclude VAT\n;",
+        format.clone(),
+    );
+    let second = format_content_with_config(&first, format);
+
+    assert!(first.contains("'011' -- exclude VAT"));
     assert_eq!(first, second);
 }
 
