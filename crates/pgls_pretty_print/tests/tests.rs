@@ -102,6 +102,19 @@ fn parse_fixture(content: &str) -> (FormatConfig, Option<usize>, String) {
             }
             ("layout", "expanded") => config.layout = Layout::Expanded,
             ("layout", "fit") => config.layout = Layout::Fit,
+            ("functionArgumentGroups", value) => {
+                for entry in value.split('|') {
+                    let Some((name, size)) = entry.split_once(':') else {
+                        panic!("functionArgumentGroups entries must use name:size");
+                    };
+                    config.function_argument_groups.insert(
+                        name.trim().to_lowercase(),
+                        size.trim()
+                            .parse()
+                            .expect("functionArgumentGroups size must be a number"),
+                    );
+                }
+            }
             (key, value) => panic!("unknown pgls-format entry: {key}={value}"),
         }
     }

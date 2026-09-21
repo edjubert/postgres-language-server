@@ -12,6 +12,7 @@ pub use crate::comments::{AttachedComments, Comment, attach_comments};
 pub use crate::normalize::normalize_ast;
 pub use crate::renderer::{IndentStyle, KeywordCase, RenderConfig};
 use pgls_query::NodeEnum;
+use std::collections::BTreeMap;
 use thiserror::Error;
 
 /// How a statement is laid out across lines.
@@ -124,6 +125,8 @@ pub struct FormatConfig {
     pub isolate_semicolon: bool,
     /// How a statement is laid out across lines. Default: Fit.
     pub layout: Layout,
+    /// Function names mapped to the number of adjacent arguments in one logical group.
+    pub function_argument_groups: BTreeMap<String, usize>,
 }
 
 impl Default for FormatConfig {
@@ -141,6 +144,7 @@ impl Default for FormatConfig {
             clause_body_style: ClauseBodyStyle::default(),
             isolate_semicolon: false,
             layout: Layout::default(),
+            function_argument_groups: BTreeMap::new(),
         }
     }
 }
@@ -160,6 +164,7 @@ impl From<FormatConfig> for RenderConfig {
             clause_body_style: _,
             isolate_semicolon,
             layout: _,
+            function_argument_groups: _,
         } = config;
 
         Self {

@@ -385,6 +385,7 @@ fn to_formatter_settings(
         clause_body_style: conf.clause_body_style,
         isolate_semicolon: conf.isolate_semicolon,
         layout: conf.layout,
+        function_argument_groups: conf.function_argument_groups,
         skip_fn_bodies: conf.skip_fn_bodies,
         ignored_files: to_matcher(working_directory.clone(), Some(&conf.ignore))?,
         included_files: to_matcher(working_directory.clone(), Some(&conf.include))?,
@@ -603,6 +604,8 @@ pub struct FormatterSettings {
     pub isolate_semicolon: bool,
     /// How a statement is laid out across lines: fit or expanded. Default: fit.
     pub layout: Layout,
+    /// Function names mapped to the number of adjacent arguments in one logical group.
+    pub function_argument_groups: pgls_configuration::FunctionArgumentGroups,
 
     /// If true, skip formatting of SQL function bodies (keep them verbatim). Default: false.
     pub skip_fn_bodies: bool,
@@ -630,6 +633,7 @@ impl Default for FormatterSettings {
             clause_body_style: ClauseBodyStyle::default(),
             isolate_semicolon: false,
             layout: Layout::default(),
+            function_argument_groups: Default::default(),
             skip_fn_bodies: false,
             ignored_files: Matcher::empty(),
             included_files: Matcher::empty(),
