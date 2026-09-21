@@ -12,6 +12,7 @@ pub use crate::comments::{AttachedComments, Comment, attach_comments};
 pub use crate::normalize::normalize_ast;
 pub use crate::renderer::{IndentStyle, KeywordCase, RenderConfig};
 use pgls_query::NodeEnum;
+use std::collections::BTreeMap;
 use thiserror::Error;
 
 /// Error type for formatting operations.
@@ -84,6 +85,8 @@ pub struct FormatConfig {
     pub comma_style: CommaStyle,
     /// Where a boolean operator sits when a condition breaks. Default: Trailing.
     pub logical_operator_placement: LogicalOperatorPlacement,
+    /// Function names mapped to the number of adjacent arguments in one logical group.
+    pub function_argument_groups: BTreeMap<String, usize>,
 }
 
 impl Default for FormatConfig {
@@ -97,6 +100,7 @@ impl Default for FormatConfig {
             type_case: KeywordCase::default(),
             comma_style: CommaStyle::default(),
             logical_operator_placement: LogicalOperatorPlacement::default(),
+            function_argument_groups: BTreeMap::new(),
         }
     }
 }
@@ -112,6 +116,7 @@ impl From<FormatConfig> for RenderConfig {
             type_case,
             comma_style: _,
             logical_operator_placement: _,
+            function_argument_groups: _,
         } = config;
 
         Self {

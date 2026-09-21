@@ -21,7 +21,11 @@ Configure formatting behavior in your `postgres-language-server.jsonc`:
     "indentStyle": "spaces",
     "keywordCase": "lower",
     "constantCase": "lower",
-    "typeCase": "lower"
+    "typeCase": "lower",
+    "functionArgumentGroups": {
+      "json_build_object": 2,
+      "jsonb_build_object": 2
+    }
   }
 }
 ```
@@ -39,6 +43,18 @@ Configure formatting behavior in your `postgres-language-server.jsonc`:
 | `typeCase` | `"lower"` | Casing for data types (text, int, varchar): `"upper"` or `"lower"` |
 | `commaStyle` | `"trailing"` | Where a comma sits when a list breaks: `"trailing"` or `"leading"` |
 | `logicalOperatorPlacement` | `"trailing"` | Where `AND` and `OR` sit when a condition breaks: `"trailing"` or `"leading"` |
+| `functionArgumentGroups` | `{}` | Function names mapped to the number of adjacent arguments that should stay together when wrapping |
+
+`functionArgumentGroups` matches the final, unqualified function name
+case-insensitively. A group size of `2` is useful for functions whose arguments
+form key/value pairs:
+
+```sql
+select jsonb_build_object(
+  'amountTTC', to_amount(amount_ttc, invoices.currency),
+  'amountVAT', to_amount(amount_vat, invoices.currency)
+);
+```
 
 ### Example Output
 
