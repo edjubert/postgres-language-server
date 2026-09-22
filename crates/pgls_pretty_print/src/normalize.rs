@@ -87,6 +87,8 @@ fn flatten_bool_expr_args(bool_expr: &mut pgls_query::protobuf::BoolExpr) {
 /// Location fields record the byte offset in the original source,
 /// which will differ between the original and reparsed AST.
 fn clear_location(node: &mut NodeEnum) {
+    let mut join_quals_to_clear = Vec::new();
+
     // SAFETY: The iterator provides mutable access to AST node fields
     unsafe {
         node.iter_mut().for_each(|n| match n {
@@ -120,7 +122,9 @@ fn clear_location(node: &mut NodeEnum) {
                         })
                         .unwrap_or(false);
                     if is_true_qual {
-                        (*n).quals = None;
+                        // Defer structural mutations until the iterator has finished. It keeps
+                        // pointers to descendants, which clearing `quals` would invalidate.
+                        join_quals_to_clear.push(n);
                     }
                 }
             }
@@ -497,6 +501,10 @@ fn clear_location(node: &mut NodeEnum) {
             }
             _ => {}
         });
+
+        for join in join_quals_to_clear {
+            (*join).quals = None;
+        }
     }
 }
 
