@@ -500,6 +500,61 @@ mod tests {
     }
 
     #[test]
+    fn formatting_a_multiline_block_comment_before_case_is_idempotent() {
+        let sql = "SELECT id,\n\
+            /* example\n\
+             * previous period\n\
+             */\n\
+            CASE WHEN period_number < 0 THEN starts_at ELSE ends_at END AS boundary\n\
+            FROM periods;";
+        let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
+        let config = FormatConfig {
+            indent_size: 4,
+            indent_style: IndentStyle::Tabs,
+            keyword_case: KeywordCase::Upper,
+            layout: Layout::Expanded,
+            line_width: 200,
+            ..Default::default()
+        };
+
+        let first = format_statement(&ast, sql, &config)
+            .expect("first pass")
+            .formatted;
+        let reparsed = pgls_query::parse(&first).unwrap().into_root().unwrap();
+        let second = format_statement(&reparsed, &first, &config)
+            .expect("second pass")
+            .formatted;
+
+        assert!(!first.contains("*/ CASE"));
+        assert!(first.contains("period_number < 0"));
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn expanded_parenthesized_type_options_are_indented() {
+        let sql =
+            "CREATE TYPE object_id (INPUT = object_id_in, OUTPUT = object_id_out, LIKE = BIT(96));";
+        let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
+        let config = FormatConfig {
+            indent_size: 4,
+            indent_style: IndentStyle::Tabs,
+            keyword_case: KeywordCase::Upper,
+            layout: Layout::Expanded,
+            line_width: 40,
+            ..Default::default()
+        };
+
+        let formatted = format_statement(&ast, sql, &config)
+            .expect("formatted")
+            .formatted;
+
+        assert!(formatted.contains("(\n\tinput"));
+        assert!(formatted.contains("\n\toutput"));
+        assert!(formatted.contains("\n\tlike"));
+        assert!(formatted.contains("\n)"));
+    }
+
+    #[test]
     fn formatting_a_comment_before_a_conjunction_is_idempotent() {
         let sql = "SELECT * FROM s.t WHERE a = 1\n-- keep b out for now\nAND b = 2;";
         let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
