@@ -555,6 +555,42 @@ mod tests {
     }
 
     #[test]
+    fn expanded_parenthesized_boolean_groups_are_indented() {
+        let sql = "SELECT * FROM accounts \
+            JOIN ribs ON accounts.number = ribs.number \
+            AND accounts.kind = ribs.kind \
+            AND ((accounts.person_id = ribs.person_id AND accounts.kind = 'G') \
+            OR (accounts.building_id = ribs.building_id AND accounts.kind = 'S')) \
+            AND accounts.active;";
+        let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
+        let config = FormatConfig {
+            indent_size: 4,
+            indent_style: IndentStyle::Tabs,
+            keyword_case: KeywordCase::Upper,
+            layout: Layout::Expanded,
+            line_width: 200,
+            logical_operator_placement: LogicalOperatorPlacement::Leading,
+            ..Default::default()
+        };
+
+        let formatted = format_statement(&ast, sql, &config)
+            .expect("formatted")
+            .formatted;
+
+        assert!(
+            formatted.contains(
+                "\t\tAND (\n\
+             \t\t\t(accounts.person_id = ribs.person_id\n\
+             \t\t\t\tAND accounts.kind = 'G')\n\
+             \t\t\tOR (accounts.building_id = ribs.building_id\n\
+             \t\t\t\tAND accounts.kind = 'S')\n\
+             \t\t)"
+            ),
+            "{formatted}"
+        );
+    }
+
+    #[test]
     fn formatting_a_comment_before_a_conjunction_is_idempotent() {
         let sql = "SELECT * FROM s.t WHERE a = 1\n-- keep b out for now\nAND b = 2;";
         let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
