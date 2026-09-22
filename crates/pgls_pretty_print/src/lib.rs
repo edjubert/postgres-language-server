@@ -468,6 +468,38 @@ mod tests {
     }
 
     #[test]
+    fn formatting_own_line_comments_before_a_case_branch_is_idempotent() {
+        let sql = "SELECT CASE\n\
+            -- an outgoing account keeps no schedule\n\
+            -- keep this reason before the first branch\n\
+            WHEN closed_at IS NOT NULL THEN 'NONE'\n\
+            ELSE 'MONTHLY'\n\
+            END AS frequency;";
+        let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
+        let config = FormatConfig {
+            indent_size: 4,
+            indent_style: IndentStyle::Tabs,
+            keyword_case: KeywordCase::Upper,
+            layout: Layout::Expanded,
+            isolate_semicolon: true,
+            ..Default::default()
+        };
+
+        let first = format_statement(&ast, sql, &config)
+            .expect("first pass")
+            .formatted;
+        let reparsed = pgls_query::parse(&first).unwrap().into_root().unwrap();
+        let second = format_statement(&reparsed, &first, &config)
+            .expect("second pass")
+            .formatted;
+
+        let comments = first.find("-- an outgoing account").expect("first comment");
+        let first_branch = first.find("WHEN closed_at").expect("first branch");
+        assert!(comments < first_branch);
+        assert_eq!(first, second);
+    }
+
+    #[test]
     fn formatting_a_comment_before_a_conjunction_is_idempotent() {
         let sql = "SELECT * FROM s.t WHERE a = 1\n-- keep b out for now\nAND b = 2;";
         let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();

@@ -32,7 +32,11 @@ pub(super) fn emit_case_expr(e: &mut EventEmitter, n: &CaseExpr) {
         } else {
             e.line(crate::emitter::LineType::SoftOrSpace);
         }
-        super::emit_node(when_clause, e);
+        if expanded && index == 0 {
+            e.with_leading_comment_line_break(|e| super::emit_node(when_clause, e));
+        } else {
+            super::emit_node(when_clause, e);
+        }
     }
 
     // ELSE clause
