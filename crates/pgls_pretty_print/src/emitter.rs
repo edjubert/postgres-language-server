@@ -142,6 +142,10 @@ impl EventEmitter {
     }
 
     fn force_current_line_break(&mut self) {
+        while matches!(self.events.last(), Some(LayoutEvent::Space)) {
+            self.events.pop();
+        }
+
         match self.events.last_mut() {
             None => {}
             Some(LayoutEvent::Line(line_type)) => *line_type = LineType::Hard,
@@ -163,5 +167,27 @@ impl EventEmitter {
 
     pub fn indent_end(&mut self) {
         self.events.push(LayoutEvent::IndentEnd);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_forced_line_break_discards_a_pending_space() {
+        let mut emitter = EventEmitter::new();
+        emitter.token(TokenKind::CASE_KW);
+        emitter.space();
+
+        emitter.force_current_line_break();
+
+        assert_eq!(
+            emitter.events,
+            vec![
+                LayoutEvent::Token(TokenKind::CASE_KW),
+                LayoutEvent::Line(LineType::Hard),
+            ]
+        );
     }
 }

@@ -463,6 +463,31 @@ mod tests {
     }
 
     #[test]
+    fn a_forced_comment_break_does_not_leave_trailing_whitespace() {
+        let sql = "SELECT CASE\n\
+            -- an outgoing account keeps no schedule\n\
+            WHEN closed_at IS NOT NULL THEN 'NONE'\n\
+            ELSE 'MONTHLY'\n\
+            END AS frequency;";
+        let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
+        let config = FormatConfig::default();
+
+        let first = format_statement(&ast, sql, &config)
+            .expect("first pass")
+            .formatted;
+        let reparsed = pgls_query::parse(&first).unwrap().into_root().unwrap();
+        let second = format_statement(&reparsed, &first, &config)
+            .expect("second pass")
+            .formatted;
+
+        assert!(
+            first.lines().all(|line| !line.ends_with([' ', '\t'])),
+            "{first:?}"
+        );
+        assert_eq!(first, second);
+    }
+
+    #[test]
     fn a_comment_closing_a_statement_is_kept() {
         let sql = "SELECT 1 FROM s.t -- trailing";
         let ast = pgls_query::parse(sql).unwrap().into_root().unwrap();
