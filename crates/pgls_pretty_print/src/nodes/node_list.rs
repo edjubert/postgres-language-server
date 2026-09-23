@@ -27,19 +27,16 @@ pub(super) fn emit_comma_separated_list_with_spacing<F>(
     for (i, n) in nodes.iter().enumerate() {
         if i > 0 {
             if leading {
-                if let Some(location) = n
-                    .node
-                    .as_ref()
-                    .and_then(|node| crate::codegen::node_location::node_location(&node.to_ref()))
-                {
-                    e.take_own_line_leading_comments_at(location);
-                }
+                let comment_broke_line = emit_own_line_comments_before_leading_separator(e, n);
 
                 // The break opportunity sits before the comma, so a broken list reads
                 // "\n, column" while a single line one still reads "a, b".
                 match spacing {
-                    ListSeparatorSpacing::SoftOrSpace => e.line(LineType::Soft),
+                    ListSeparatorSpacing::SoftOrSpace if !comment_broke_line => {
+                        e.line(LineType::Soft);
+                    }
                     ListSeparatorSpacing::Space => {}
+                    ListSeparatorSpacing::SoftOrSpace => {}
                 }
                 e.token(TokenKind::COMMA);
                 e.space();
@@ -73,7 +70,9 @@ where
     for (i, n) in nodes.iter().enumerate() {
         if i > 0 {
             if leading {
-                e.line(LineType::FillNoSpace);
+                if !emit_own_line_comments_before_leading_separator(e, n) {
+                    e.line(LineType::FillNoSpace);
+                }
                 e.token(TokenKind::COMMA);
                 e.space();
             } else {
@@ -98,7 +97,9 @@ pub(super) fn emit_comma_separated_list_with_layout_break<F>(
     for (index, node) in nodes.iter().enumerate() {
         if index > 0 {
             if leading {
-                super::emit_layout_break(e);
+                if !emit_own_line_comments_before_leading_separator(e, node) {
+                    super::emit_layout_break(e);
+                }
                 e.token(TokenKind::COMMA);
                 e.space();
             } else {
@@ -108,6 +109,13 @@ pub(super) fn emit_comma_separated_list_with_layout_break<F>(
         }
         render(node, e);
     }
+}
+
+fn emit_own_line_comments_before_leading_separator(e: &mut EventEmitter, node: &Node) -> bool {
+    node.node
+        .as_ref()
+        .and_then(|node| crate::codegen::node_location::node_location(&node.to_ref()))
+        .is_some_and(|location| e.take_own_line_leading_comments_at(location))
 }
 
 pub(super) fn emit_dot_separated_list(e: &mut EventEmitter, nodes: &[Node]) {
