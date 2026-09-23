@@ -182,14 +182,32 @@ impl EventEmitter {
     }
 
     fn force_current_line_break(&mut self) {
-        while matches!(self.events.last(), Some(LayoutEvent::Space)) {
-            self.events.pop();
-        }
+        loop {
+            let Some(index) = self.events.iter().rposition(|event| {
+                !matches!(
+                    event,
+                    LayoutEvent::GroupStart { .. }
+                        | LayoutEvent::GroupEnd
+                        | LayoutEvent::IndentStart
+                        | LayoutEvent::IndentEnd
+                )
+            }) else {
+                return;
+            };
 
-        match self.events.last_mut() {
-            None => {}
-            Some(LayoutEvent::Line(line_type)) => *line_type = LineType::Hard,
-            Some(_) => self.line(LineType::Hard),
+            match &mut self.events[index] {
+                LayoutEvent::Space => {
+                    self.events.remove(index);
+                }
+                LayoutEvent::Line(line_type) => {
+                    *line_type = LineType::Hard;
+                    return;
+                }
+                _ => {
+                    self.line(LineType::Hard);
+                    return;
+                }
+            }
         }
     }
 
@@ -219,6 +237,8 @@ mod tests {
         let mut emitter = EventEmitter::new(FormatConfig::default());
         emitter.token(TokenKind::CASE_KW);
         emitter.space();
+        emitter.group_start(GroupKind::CaseExpr);
+        emitter.indent_start();
 
         emitter.force_current_line_break();
 
@@ -226,6 +246,10 @@ mod tests {
             emitter.events,
             vec![
                 LayoutEvent::Token(TokenKind::CASE_KW),
+                LayoutEvent::GroupStart {
+                    kind: GroupKind::CaseExpr,
+                },
+                LayoutEvent::IndentStart,
                 LayoutEvent::Line(LineType::Hard),
             ]
         );
