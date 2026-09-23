@@ -436,6 +436,10 @@ export interface PartialFilesConfiguration {
  */
 export interface PartialFormatConfiguration {
   /**
+   * Where the body of a clause starts: "break" for a new line, "compact" to keep the first element on the keyword line. Default: "break".
+   */
+  clauseBodyStyle?: ClauseBodyStyle;
+  /**
    * Constant casing (NULL, TRUE, FALSE): "upper" or "lower". Default: "lower".
    */
   constantCase?: KeywordCase;
@@ -459,6 +463,10 @@ export interface PartialFormatConfiguration {
    * Indentation style: "spaces" or "tabs". Default: "spaces".
    */
   indentStyle?: IndentStyle;
+  /**
+   * If `true`, the terminating semicolon goes on its own line when the statement spans several lines. Default: `false`.
+   */
+  isolateSemicolon?: boolean;
   /**
    * Keyword casing: "upper" or "lower". Default: "lower".
    */
@@ -624,6 +632,10 @@ If we can't find the configuration, it will attempt to use the current working d
    */
   useIgnoreFile?: boolean;
 }
+/**
+ * Where the body of a clause starts.
+ */
+export type ClauseBodyStyle = "break" | "compact";
 /**
  * Keyword casing style for the formatter.
  */
