@@ -45,9 +45,7 @@ pub fn run_parse(input: &str, path: Option<&Path>) -> Result<(), CliDiagnostic> 
     std::io::stdout()
         .write_all(&bytes)
         .map_err(CliDiagnostic::io_error)?;
-    std::io::stdout()
-        .flush()
-        .map_err(CliDiagnostic::io_error)
+    std::io::stdout().flush().map_err(CliDiagnostic::io_error)
 }
 
 /// Read the SQL to parse from a file or standard input.
