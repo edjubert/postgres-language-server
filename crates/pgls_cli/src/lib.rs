@@ -116,8 +116,7 @@ impl<'app> CliSession<'app> {
                 file,
                 stdin_file_path,
             } => {
-                let path = file
-                    .or_else(|| stdin_file_path.as_deref().map(PathBuf::from));
+                let path = file.or_else(|| stdin_file_path.as_deref().map(PathBuf::from));
                 let input = commands::parse::read_input(path.as_deref())?;
                 commands::parse::run_parse(&input, path.as_deref())
             }
