@@ -6,7 +6,7 @@ variables:
   CARGO_HOME: "$CI_PROJECT_DIR/.cargo"
   CARGO_TARGET_DIR: "$CI_PROJECT_DIR/target"
   GIT_SUBMODULE_STRATEGY: recursive
-  RUSTUP_TOOLCHAIN: "1.88.0-x86_64-unknown-linux-gnu"
+  RUSTUP_TOOLCHAIN: "1.99.0-x86_64-unknown-linux-gnu"
   PGLS_PACKAGE_NAME: "postgres-language-server"
   PGLS_LINUX_ASSET: "postgres-language-server-linux-x86_64.tar.gz"
   PGLS_LINUX_TARGET: "x86_64-unknown-linux-gnu"
@@ -27,7 +27,7 @@ workflow:
 
 verify and package linux x86_64:
   stage: package
-  image: rust:1.88-bookworm
+  image: rust:1.99-bookworm
   tags:
     - kub-mig-xlarge
   extends: .cargo-cache
