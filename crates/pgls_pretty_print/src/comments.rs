@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use pgls_query::{NodeEnum, protobuf::Token};
+use pgls_query::{NodeEnum, NodeRef, protobuf::BoolExprType, protobuf::Token};
 
 use crate::codegen::node_location::node_location;
 
@@ -211,9 +211,21 @@ fn collect_comments(sql: &str) -> Vec<SourceComment> {
 
 fn collect_node_locations(ast: &NodeEnum) -> Vec<i32> {
     ast.iter()
+        // AND/OR locations point between their operands, but the BoolExpr is emitted before
+        // either operand. Attach comments there to the following operand instead.
+        .filter(|node| {
+            !matches!(node, NodeRef::BoolExpr(expr) if expr.boolop() != BoolExprType::NotExpr)
+        })
         .filter_map(|node| node_location(&node))
         .filter(|location| *location >= 0)
         .collect()
+}
+
+pub(crate) fn first_node_location(ast: &NodeEnum) -> Option<i32> {
+    ast.iter()
+        .filter_map(|node| node_location(&node))
+        .filter(|location| *location >= 0)
+        .min()
 }
 
 #[cfg(test)]
