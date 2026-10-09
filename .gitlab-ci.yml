@@ -2,6 +2,10 @@ stages:
   - package
   - release
 
+default:
+  tags:
+    - kub-v2-small
+
 variables:
   CARGO_HOME: "$CI_PROJECT_DIR/.cargo"
   CARGO_TARGET_DIR: "$CI_PROJECT_DIR/target"
