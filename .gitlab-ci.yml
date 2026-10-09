@@ -46,6 +46,7 @@ verify and package linux x86_64:
   script:
     - cargo fmt --all -- --check
     - cargo clippy --locked --release --target "$PGLS_LINUX_TARGET" --all-targets --all-features -- -D warnings
+    - cargo test --locked --release --target "$PGLS_LINUX_TARGET" -p pgls_pretty_print
     - scripts/package-linux-x86_64.sh dist
   artifacts:
     expire_in: 1 week
