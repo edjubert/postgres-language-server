@@ -90,7 +90,7 @@ create release:
   release:
     tag_name: "$CI_COMMIT_TAG"
     name: "Postgres Language Server $CI_COMMIT_TAG"
-    description: "Patched formatter binary for data-ml."
+    description: "Postgres Language Server distribution for data-ml."
     assets:
       links:
         - name: "$PGLS_LINUX_ASSET"
